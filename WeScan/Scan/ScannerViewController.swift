@@ -10,15 +10,15 @@ import UIKit
 import AVFoundation
 
 /// The `ScannerViewController` offers an interface to give feedback to the user regarding quadrilaterals that are detected. It also gives the user the opportunity to capture an image with a detected rectangle.
-final class ScannerViewController: UIViewController {
+open class ScannerViewController: UIViewController {
     
-    private var captureSessionManager: CaptureSessionManager?
-    private let videoPreviewlayer = AVCaptureVideoPreviewLayer()
+    open var captureSessionManager: CaptureSessionManager?
+    open let videoPreviewlayer = AVCaptureVideoPreviewLayer()
     
     /// The view that draws the detected rectangles.
-    private let quadView = QuadrilateralView()
+    open let quadView = QuadrilateralView()
     
-    lazy private var shutterButton: ShutterButton = {
+    var shutterButton: ShutterButton = {
         let button = ShutterButton()
         button.translatesAutoresizingMaskIntoConstraints = false
         button.addTarget(self, action: #selector(captureImage(_:)), for: .touchUpInside)
@@ -31,21 +31,24 @@ final class ScannerViewController: UIViewController {
         activityIndicator.translatesAutoresizingMaskIntoConstraints = false
         return activityIndicator
     }()
-
+    
     lazy private var closeButton: CloseButton = {
         let button = CloseButton(frame: CGRect(x: 0, y: 0, width: 18, height: 18))
         button.addTarget(self, action: #selector(cancelImageScannerController(_:)), for: .touchUpInside)
         return button
     }()
-
+    
+    open func takeImageFromWeScanView(image: UIImage, quad: Quadrilateral?) {
+        
+    }
     // MARK: - Life Cycle
-
-    override func viewDidLoad() {
+    
+    override open func viewDidLoad() {
         super.viewDidLoad()
-
+        
         title = NSLocalizedString("wescan.scanning.title", tableName: nil, bundle: Bundle(for: ScannerViewController.self), value: "Scanning", comment: "The title of the ScannerViewController")
         navigationItem.leftBarButtonItem = UIBarButtonItem(customView: closeButton)
-
+        
         setupViews()
         setupConstraints()
         
@@ -53,20 +56,20 @@ final class ScannerViewController: UIViewController {
         captureSessionManager?.delegate = self
     }
     
-    override func viewWillAppear(_ animated: Bool) {
+    override open func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         quadView.removeQuadrilateral()
         captureSessionManager?.start()
         UIApplication.shared.isIdleTimerDisabled = true
     }
     
-    override func viewDidLayoutSubviews() {
+    override open func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         
         videoPreviewlayer.frame = view.layer.bounds
     }
     
-    override func viewWillDisappear(_ animated: Bool) {
+    override open func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
         UIApplication.shared.isIdleTimerDisabled = false
     }
@@ -77,7 +80,9 @@ final class ScannerViewController: UIViewController {
         view.layer.addSublayer(videoPreviewlayer)
         quadView.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(quadView)
+        quadView.isHidden = true
         view.addSubview(shutterButton)
+        shutterButton.isHidden = true
         view.addSubview(activityIndicator)
     }
     
@@ -90,7 +95,7 @@ final class ScannerViewController: UIViewController {
         ]
         
         var shutterButtonBottomConstraint: NSLayoutConstraint
-
+        
         if #available(iOS 11.0, *) {
             shutterButtonBottomConstraint = view.safeAreaLayoutGuide.bottomAnchor.constraint(equalTo: shutterButton.bottomAnchor, constant: 15.0)
         } else {
@@ -123,11 +128,11 @@ final class ScannerViewController: UIViewController {
             imageScannerController.imageScannerDelegate?.imageScannerControllerDidCancel(imageScannerController)
         }
     }
-
+    
 }
 
 extension ScannerViewController: RectangleDetectionDelegateProtocol {
-    func captureSessionManager(_ captureSessionManager: CaptureSessionManager, didFailWithError error: Error) {
+    public func captureSessionManager(_ captureSessionManager: CaptureSessionManager, didFailWithError error: Error) {
         
         activityIndicator.stopAnimating()
         shutterButton.isUserInteractionEnabled = true
@@ -137,21 +142,18 @@ extension ScannerViewController: RectangleDetectionDelegateProtocol {
         }
     }
     
-    func didStartCapturingPicture(for captureSessionManager: CaptureSessionManager) {
+    public func didStartCapturingPicture(for captureSessionManager: CaptureSessionManager) {
         activityIndicator.startAnimating()
         shutterButton.isUserInteractionEnabled = false
     }
     
-    func captureSessionManager(_ captureSessionManager: CaptureSessionManager, didCapturePicture picture: UIImage, withQuad quad: Quadrilateral?) {
+    public func captureSessionManager(_ captureSessionManager: CaptureSessionManager, didCapturePicture picture: UIImage, withQuad quad: Quadrilateral?) {
         activityIndicator.stopAnimating()
-        
-        let editVC = EditScanViewController(image: picture, quad: quad)
-        navigationController?.pushViewController(editVC, animated: false)
-        
+        takeImageFromWeScanView(image: picture, quad: quad)
         shutterButton.isUserInteractionEnabled = true
     }
-        
-    func captureSessionManager(_ captureSessionManager: CaptureSessionManager, didDetectQuad quad: Quadrilateral?, _ imageSize: CGSize) {
+    
+    public func captureSessionManager(_ captureSessionManager: CaptureSessionManager, didDetectQuad quad: Quadrilateral?, _ imageSize: CGSize) {
         guard let quad = quad else {
             // If no quad has been detected, we remove the currently displayed on on the quadView.
             quadView.removeQuadrilateral()
@@ -164,10 +166,10 @@ extension ScannerViewController: RectangleDetectionDelegateProtocol {
         let scaledImageSize = imageSize.applying(scaleTransform)
         
         let rotationTransform = CGAffineTransform(rotationAngle: CGFloat(Double.pi / 2.0))
-
+        
         let imageBounds = CGRect(x: 0.0, y: 0.0, width: scaledImageSize.width, height: scaledImageSize.height).applying(rotationTransform)
         let translationTransform = CGAffineTransform.translateTransform(fromCenterOfRect: imageBounds, toCenterOfRect: quadView.bounds)
-
+        
         let transforms = [scaleTransform, rotationTransform, translationTransform]
         
         let transformedQuad = quad.applyTransforms(transforms)

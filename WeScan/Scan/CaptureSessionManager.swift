@@ -134,7 +134,7 @@ final class CaptureSessionManager: NSObject, AVCaptureVideoDataOutputSampleBuffe
             photoOutputConnection.videoOrientation = AVCaptureVideoOrientation(deviceOrientation: UIDevice.current.orientation) ?? AVCaptureVideoOrientation.portrait
         }
         
-       photoOutput.capturePhoto(with: photoSettings, delegate: self)
+        photoOutput.capturePhoto(with: photoSettings, delegate: self)
     }
     
     // MARK: - AVCaptureVideoDataOutputSampleBufferDelegate
@@ -188,11 +188,11 @@ final class CaptureSessionManager: NSObject, AVCaptureVideoDataOutputSampleBuffe
         
         return quad
     }
-
+    
 }
 
 extension CaptureSessionManager: AVCapturePhotoCaptureDelegate {
-
+    
     func photoOutput(_ captureOutput: AVCapturePhotoOutput, didFinishProcessingPhoto photoSampleBuffer: CMSampleBuffer?, previewPhoto previewPhotoSampleBuffer: CMSampleBuffer?, resolvedSettings: AVCaptureResolvedPhotoSettings, bracketSettings: AVCaptureBracketedStillImageSettings?, error: Error?) {
         if let error = error {
             delegate?.captureSessionManager(self, didFailWithError: error)
@@ -204,7 +204,7 @@ extension CaptureSessionManager: AVCapturePhotoCaptureDelegate {
         
         if let sampleBuffer = photoSampleBuffer,
             let imageData = AVCapturePhotoOutput.jpegPhotoDataRepresentation(forJPEGSampleBuffer: sampleBuffer, previewPhotoSampleBuffer: nil) {
-                completeImageCapture(with: imageData)
+            completeImageCapture(with: imageData)
             
         } else {
             let error = ImageScannerControllerError.capture

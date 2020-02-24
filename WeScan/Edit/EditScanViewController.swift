@@ -10,7 +10,7 @@ import UIKit
 import AVFoundation
 
 /// The `EditScanViewController` offers an interface for the user to edit the detected quadrilateral.
-final class EditScanViewController: UIViewController {
+open class EditScanViewController: UIViewController {
     
     lazy private var imageView: UIImageView = {
         let imageView = UIImageView()
@@ -31,37 +31,46 @@ final class EditScanViewController: UIViewController {
     }()
     
     lazy private var nextButton: UIBarButtonItem = {
-        let title = NSLocalizedString("wescan.edit.button.next", tableName: nil, bundle: Bundle(for: EditScanViewController.self), value: "Next", comment: "A generic next button")
+        let title = NSLocalizedString("wescan.edit.button.next", tableName: nil, bundle: Bundle(for: EditScanViewController.self), value: "Done", comment: "A generic next button")
         let button = UIBarButtonItem(title: title, style: .plain, target: self, action: #selector(pushReviewController))
         button.tintColor = navigationController?.navigationBar.tintColor
         return button
     }()
-
+    
     /// The image the quadrilateral was detected on.
-    private let image: UIImage
+    private var image: UIImage!
     
     /// The detected quadrilateral that can be edited by the user. Uses the image's coordinates.
-    private var quad: Quadrilateral
+    private var quad: Quadrilateral!
     
     private var quadViewWidthConstraint = NSLayoutConstraint()
     private var quadViewHeightConstraint = NSLayoutConstraint()
+    open var isOrientationDone = false
     
     // MARK: - Life Cycle
     
-    init(image: UIImage, quad: Quadrilateral?) {
+    //    init() {
+    //        super.init()
+    ////        self.image = image
+    ////        self.quad = quad ?? EditScanViewController.defaultQuad(forImage: image)
+    //
+    ////        super.init(nibName: nil, bundle: nil)
+    //    }
+    
+    open func setImage(image: UIImage, quad: Quadrilateral?) {
         self.image = image
         self.quad = quad ?? EditScanViewController.defaultQuad(forImage: image)
         
-        super.init(nibName: nil, bundle: nil)
     }
     
-    required init?(coder aDecoder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
+    //    required public init?(coder aDecoder: NSCoder) {
+    //        super.init(coder: aDecoder)
+    //        //fatalError("init(coder:) has not been implemented")
+    //    }
     
-    override func viewDidLoad() {
+    override open func viewDidLoad() {
         super.viewDidLoad()
-        
+        self.navigationController?.isNavigationBarHidden = false
         setupViews()
         setupConstraints()
         
@@ -69,16 +78,25 @@ final class EditScanViewController: UIViewController {
         navigationItem.rightBarButtonItem = nextButton
     }
     
-    override func viewDidLayoutSubviews() {
+    open func croppedImage(scannedImage: UIImage) {
+        
+    }
+    
+    override open func viewDidLayoutSubviews() {
         super.viewDidLayoutSubviews()
         adjustQuadViewConstraints()
         displayQuad()
     }
     
-    override func viewWillDisappear(_ animated: Bool) {
+    open override func viewWillAppear(_ animated: Bool) {
+        self.navigationController?.isNavigationBarHidden = false
+    }
+    
+    override open func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        NotificationCenter.default.post(name: NSNotification.Name(rawValue: "handelDismissWeScan"), object: nil)
+        self.navigationController?.isNavigationBarHidden = true
         // Work around for an iOS 11.2 bug where UIBarButtonItems don't get back to their normal state after being pressed.
+        
         navigationController?.navigationBar.tintAdjustmentMode = .normal
         navigationController?.navigationBar.tintAdjustmentMode = .automatic
     }
@@ -97,7 +115,7 @@ final class EditScanViewController: UIViewController {
             view.bottomAnchor.constraint(equalTo: imageView.bottomAnchor),
             view.leadingAnchor.constraint(equalTo: imageView.leadingAnchor)
         ]
-                
+        
         quadViewWidthConstraint = quadView.widthAnchor.constraint(equalToConstant: 0.0)
         quadViewHeightConstraint = quadView.heightAnchor.constraint(equalToConstant: 0.0)
         
@@ -120,16 +138,18 @@ final class EditScanViewController: UIViewController {
                     let error = ImageScannerControllerError.ciImageCreation
                     imageScannerController.imageScannerDelegate?.imageScannerController(imageScannerController, didFailWithError: error)
                 }
-            return
+                return
         }
         
         let scaledQuad = quad.scale(quadView.bounds.size, image.size)
         self.quad = scaledQuad
         
-//        if image.size.width < image.size.height {
-//            let orientationTransform = ciImage.orientationTransform(forExifOrientation: 6)
-//            ciImage = ciImage.transformed(by: orientationTransform)
-//        }
+        if image.size.width < image.size.height {
+            if !isOrientationDone {
+                let orientationTransform = ciImage.orientationTransform(forExifOrientation: 6)
+                ciImage = ciImage.transformed(by: orientationTransform)
+            }
+        }
         
         var cartesianScaledQuad = scaledQuad.toCartesian(withHeight: image.size.height)
         cartesianScaledQuad.reorganize()
@@ -151,11 +171,12 @@ final class EditScanViewController: UIViewController {
         }
         
         let results = ImageScannerResults(originalImage: image, scannedImage: uiImage, detectedRectangle: scaledQuad)
-        let reviewViewController = ReviewViewController(results: results)
-        
-        navigationController?.pushViewController(reviewViewController, animated: true)
+        self.navigationController?.popViewController(animated: true)
+        //let reviewViewController = ReviewViewController(results: results)
+        croppedImage(scannedImage: uiImage)
+        //navigationController?.pushViewController(reviewViewController, animated: true)
     }
-
+    
     private func displayQuad() {
         let imageSize = image.size
         let imageFrame = CGRect(x: quadView.frame.origin.x, y: quadView.frame.origin.y, width: quadViewWidthConstraint.constant, height: quadViewHeightConstraint.constant)
@@ -186,5 +207,5 @@ final class EditScanViewController: UIViewController {
         
         return quad
     }
-
+    
 }
