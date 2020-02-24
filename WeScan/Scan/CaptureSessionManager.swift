@@ -117,6 +117,10 @@ open class CaptureSessionManager: NSObject, AVCaptureVideoDataOutputSampleBuffer
         }
     }
     
+    public func stopCamera() {
+        stop()
+    }
+    
     internal func stop() {
         captureSession.stopRunning()
     }
