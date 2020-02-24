@@ -18,7 +18,7 @@ enum CornerPosition {
 }
 
 /// The `QuadrilateralView` is a simple `UIView` subclass that can draw a quadrilateral, and optionally edit it.
-final class QuadrilateralView: UIView {
+open class QuadrilateralView: UIView {
     
     private let quadLayer = CAShapeLayer()
     
@@ -75,7 +75,7 @@ final class QuadrilateralView: UIView {
         addSubview(bottomLeftCornerButton)
     }
     
-    override public func layoutSubviews() {
+    override open func layoutSubviews() {
         super.layoutSubviews()
         
         quadLayer.frame = bounds
