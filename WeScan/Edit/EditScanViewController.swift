@@ -144,12 +144,12 @@ open class EditScanViewController: UIViewController {
         let scaledQuad = quad.scale(quadView.bounds.size, image.size)
         self.quad = scaledQuad
         
-        if image.size.width < image.size.height {
-            if !isOrientationDone {
-                let orientationTransform = ciImage.orientationTransform(forExifOrientation: 6)
-                ciImage = ciImage.transformed(by: orientationTransform)
-            }
-        }
+//        if image.size.width < image.size.height {
+//            if !isOrientationDone {
+//                let orientationTransform = ciImage.orientationTransform(forExifOrientation: 6)
+//                ciImage = ciImage.transformed(by: orientationTransform)
+//            }
+//        }
         
         var cartesianScaledQuad = scaledQuad.toCartesian(withHeight: image.size.height)
         cartesianScaledQuad.reorganize()
