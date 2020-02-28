@@ -133,48 +133,38 @@ open class EditScanViewController: UIViewController {
     
     @objc func pushReviewController() {
         guard let quad = quadView.quad,
-            var ciImage = CIImage(image: image) else {
+            let ciImage = CIImage(image: image) else {
                 if let imageScannerController = navigationController as? ImageScannerController {
                     let error = ImageScannerControllerError.ciImageCreation
                     imageScannerController.imageScannerDelegate?.imageScannerController(imageScannerController, didFailWithError: error)
                 }
                 return
         }
-        
+        let cgOrientation = CGImagePropertyOrientation(rawValue: UInt32((image?.imageOrientation)!.rawValue))
+        let orientedImage = ciImage.oriented(forExifOrientation: Int32(cgOrientation!.rawValue))
         let scaledQuad = quad.scale(quadView.bounds.size, image.size)
         self.quad = scaledQuad
         
-//        if image.size.width < image.size.height {
-//            if !isOrientationDone {
-//                let orientationTransform = ciImage.orientationTransform(forExifOrientation: 6)
-//                ciImage = ciImage.transformed(by: orientationTransform)
-//            }
-//        }
-        
+        // Cropped Image
         var cartesianScaledQuad = scaledQuad.toCartesian(withHeight: image.size.height)
         cartesianScaledQuad.reorganize()
         
-        let filteredImage = ciImage.applyingFilter("CIPerspectiveCorrection", parameters: [
+        let filteredImage = orientedImage.applyingFilter("CIPerspectiveCorrection", parameters: [
             "inputTopLeft": CIVector(cgPoint: cartesianScaledQuad.bottomLeft),
             "inputTopRight": CIVector(cgPoint: cartesianScaledQuad.bottomRight),
             "inputBottomLeft": CIVector(cgPoint: cartesianScaledQuad.topLeft),
             "inputBottomRight": CIVector(cgPoint: cartesianScaledQuad.topRight)
             ])
         
-        var uiImage: UIImage!
+        let croppedImage = UIImage.from(ciImage: filteredImage)
+        // Enhanced Image
+        let enhancedImage = filteredImage.applyingAdaptiveThreshold()?.withFixedOrientation()
+        let enhancedScan = enhancedImage.flatMap { ImageScannerScan(image: $0) }
         
-        // Let's try to generate the CGImage from the CIImage before creating a UIImage.
-        if let cgImage = CIContext(options: nil).createCGImage(filteredImage, from: filteredImage.extent) {
-            uiImage = UIImage(cgImage: cgImage)
-        } else {
-            uiImage = UIImage(ciImage: filteredImage, scale: 1.0, orientation: .up)
-        }
+        let results = ImageScannerResults(detectedRectangle: scaledQuad, originalScan: ImageScannerScan(image: image), croppedScan: ImageScannerScan(image: croppedImage), enhancedScan: enhancedScan)
         
-        let results = ImageScannerResults(originalImage: image, scannedImage: uiImage, detectedRectangle: scaledQuad)
-        self.navigationController?.popViewController(animated: true)
-        //let reviewViewController = ReviewViewController(results: results)
-        croppedImage(scannedImage: uiImage)
-        //navigationController?.pushViewController(reviewViewController, animated: true)
+        let reviewViewController = ReviewViewController(results: results)
+        navigationController?.pushViewController(reviewViewController, animated: true)
     }
     
     private func displayQuad() {
